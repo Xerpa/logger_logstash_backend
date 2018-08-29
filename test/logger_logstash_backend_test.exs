@@ -16,7 +16,6 @@
 defmodule LoggerLogstashBackendTest do
   use ExUnit.Case, async: false
   require Logger
-  use Timex
 
   @backend {LoggerLogstashBackend, :test}
   Logger.add_backend @backend
@@ -50,15 +49,15 @@ defmodule LoggerLogstashBackendTest do
       "module" => "Elixir.LoggerLogstashBackendTest",
       "pid" => (inspect self()),
       "some_metadata" => "go here",
-      "line" => 42,
+      "line" => 41,
       "key1" => "field1"
     }
     assert contains?(data["fields"], expected)
-    {:ok, ts} = Timex.parse data["@timestamp"], "{ISO:Extended}"
-    ts = Timex.to_unix ts
+    {:ok, ts, _} = DateTime.from_iso8601(data["@timestamp"])
+    ts = DateTime.to_unix(ts)
 
-    now = Timex.to_unix Timex.local
-    assert (now - ts) < 1000
+    now = DateTime.to_unix(DateTime.utc_now())
+    assert (now - ts) > 0
   end
 
   test "can log pids" do
@@ -74,14 +73,14 @@ defmodule LoggerLogstashBackendTest do
       "pid" => (inspect self()),
       "pid_key" => inspect(self()),
       "some_metadata" => "go here",
-      "line" => 65
+      "line" => 64
     }
     assert contains?(data["fields"], expected)
-    {:ok, ts} = Timex.parse data["@timestamp"], "{ISO:Extended}"
-    ts = Timex.to_unix ts
+    {:ok, ts, _} = DateTime.from_iso8601(data["@timestamp"])
+    ts = DateTime.to_unix(ts)
 
-    now = Timex.to_unix Timex.local
-    assert (now - ts) < 1000
+    now = DateTime.to_unix(DateTime.utc_now)
+    assert (now - ts) > 0
   end
 
   test "cant log when minor levels" do

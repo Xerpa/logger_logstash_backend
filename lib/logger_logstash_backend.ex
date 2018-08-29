@@ -15,7 +15,6 @@
 ################################################################################
 defmodule LoggerLogstashBackend do
   @behaviour :gen_event
-  use Timex
 
   def init({__MODULE__, name}) do
     {:ok, configure(name, [])}
@@ -69,10 +68,10 @@ defmodule LoggerLogstashBackend do
     {:ok, ts} = NaiveDateTime.new(
       year, month, day, hour, minute, second, (milliseconds * 1000)
     )
-    ts = Timex.to_datetime ts, Timezone.local
+    ts = DateTime.from_naive!(ts, "Etc/UTC")
     {:ok, json} = JSX.encode %{
       type: type,
-      "@timestamp": Timex.format!(ts, "{ISO:Extended}"),
+      "@timestamp": DateTime.to_iso8601(ts),
       message: to_string(msg),
       fields: fields
     }
