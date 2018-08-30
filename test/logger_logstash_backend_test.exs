@@ -18,10 +18,10 @@ defmodule LoggerLogstashBackendTest do
   require Logger
 
   @backend {LoggerLogstashBackend, :test}
-  Logger.add_backend @backend
+  Logger.add_backend(@backend)
 
   setup do
-    Logger.configure_backend @backend, [
+    Logger.configure_backend(@backend,
       host: "127.0.0.1",
       port: 10001,
       level: :info,
@@ -29,69 +29,77 @@ defmodule LoggerLogstashBackendTest do
       metadata: [
         some_metadata: "go here"
       ]
-    ]
-    {:ok, socket} = :gen_udp.open 10001, [:binary, {:active, true}]
-    on_exit fn ->
-      :ok = :gen_udp.close socket
-    end
+    )
+
+    {:ok, socket} = :gen_udp.open(10001, [:binary, {:active, true}])
+
+    on_exit(fn ->
+      :ok = :gen_udp.close(socket)
+    end)
+
     :ok
   end
 
   test "can log" do
-    Logger.info "hello world", [key1: "field1"]
+    Logger.info("hello world", key1: "field1")
     json = get_log()
-    {:ok, data} = JSX.decode json
+    {:ok, data} = JSX.decode(json)
     assert data["type"] === "some_app"
     assert data["message"] === "hello world"
+
     expected = %{
       "function" => "test can log/1",
       "level" => "info",
       "module" => "Elixir.LoggerLogstashBackendTest",
-      "pid" => (inspect self()),
+      "pid" => inspect(self()),
       "some_metadata" => "go here",
       "line" => 41,
       "key1" => "field1"
     }
+
     assert contains?(data["fields"], expected)
     {:ok, ts, _} = DateTime.from_iso8601(data["@timestamp"])
     ts = DateTime.to_unix(ts)
 
     now = DateTime.to_unix(DateTime.utc_now())
-    assert (now - ts) > 0
+    assert now - ts > 0
   end
 
   test "can log pids" do
-    Logger.info "pid", [pid_key: self()]
+    Logger.info("pid", pid_key: self())
     json = get_log()
-    {:ok, data} = JSX.decode json
+    {:ok, data} = JSX.decode(json)
     assert data["type"] === "some_app"
     assert data["message"] === "pid"
+
     expected = %{
       "function" => "test can log pids/1",
       "level" => "info",
       "module" => "Elixir.LoggerLogstashBackendTest",
-      "pid" => (inspect self()),
+      "pid" => inspect(self()),
       "pid_key" => inspect(self()),
       "some_metadata" => "go here",
       "line" => 64
     }
+
     assert contains?(data["fields"], expected)
     {:ok, ts, _} = DateTime.from_iso8601(data["@timestamp"])
     ts = DateTime.to_unix(ts)
 
-    now = DateTime.to_unix(DateTime.utc_now)
-    assert (now - ts) > 0
+    now = DateTime.to_unix(DateTime.utc_now())
+    assert now - ts > 0
   end
 
   test "cant log when minor levels" do
-    Logger.debug "hello world", [key1: "field1"]
+    Logger.debug("hello world", key1: "field1")
     :nothing_received = get_log()
   end
 
   defp get_log do
     receive do
       {:udp, _, _, _, json} -> json
-    after 500 -> :nothing_received
+    after
+      500 -> :nothing_received
     end
   end
 
