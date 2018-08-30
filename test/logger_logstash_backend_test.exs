@@ -53,7 +53,7 @@ defmodule LoggerLogstashBackendTest do
       "module" => "Elixir.LoggerLogstashBackendTest",
       "pid" => inspect(self()),
       "some_metadata" => "go here",
-      "line" => 41,
+      "line" => 44,
       "key1" => "field1"
     }
 
@@ -79,7 +79,7 @@ defmodule LoggerLogstashBackendTest do
       "pid" => inspect(self()),
       "pid_key" => inspect(self()),
       "some_metadata" => "go here",
-      "line" => 64
+      "line" => 69
     }
 
     assert contains?(data["fields"], expected)
@@ -93,6 +93,15 @@ defmodule LoggerLogstashBackendTest do
   test "cant log when minor levels" do
     Logger.debug("hello world", key1: "field1")
     :nothing_received = get_log()
+  end
+
+  test "accents" do
+    Logger.error("açentuãdô")
+    json = get_log()
+    {:ok, data} = JSX.decode(json)
+
+    assert data["type"] === "some_app"
+    assert data["message"] === "açentuãdô"
   end
 
   defp get_log do
